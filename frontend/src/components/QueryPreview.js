@@ -1,6 +1,7 @@
 import React from "react";
+import { Box, Typography, Button } from "@mui/material";
 
-const QueryPreview = ({ query, isLoading }) => {
+const QueryPreview = ({ query }) => {
   const handleSearch = () => {
     if (query) {
       window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank");
@@ -8,17 +9,23 @@ const QueryPreview = ({ query, isLoading }) => {
   };
 
   return (
-    <div className="mt-6 p-4 bg-gray-100 rounded">
-      <h3 className="font-bold text-lg mb-2">Generated Query:</h3>
-      <p className="my-2 bg-white p-2 rounded border">{query || "Your query will appear here..."}</p>
-      <button
+    <Box sx={{ mt: 4, p: 3, bgcolor: "background.paper", borderRadius: 2, boxShadow: 1 }}>
+      <Typography variant="h6" gutterBottom>
+        Generated Query:
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 2, fontFamily: "monospace" }}>
+        {query || "Your query will appear here..."}
+      </Typography>
+      <Button
+        variant="contained"
+        color="success"
         onClick={handleSearch}
-        disabled={!query || isLoading}
-        className="w-full p-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-green-300"
+        disabled={!query}
+        fullWidth
       >
         Search on Google
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 };
 

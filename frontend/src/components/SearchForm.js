@@ -1,128 +1,101 @@
 import React, { useState } from "react";
+import { TextField, Select, MenuItem, Button, Box, FormControl, InputLabel, Grid } from "@mui/material";
 
-const templates = [
-  { name: "Find PDFs with confidential data", query: { fileType: "pdf", searchText: "confidential" } },
-  { name: "Search for login pages", query: { searchText: "login", intitle: "login" } },
-  { name: "Find exposed admin pages", query: { inurl: "admin", intitle: "admin" } },
+const fileTypes = [
+  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv", "xml", "json",
+  "html", "php", "asp", "aspx", "jsp", "sql", "log", "rtf", "odt", "ods", "odp"
 ];
+
+const operators = {
+  intitle: "Search in page title",
+  inurl: "Search in URL",
+  intext: "Search in page content",
+  site: "Limit to a specific site",
+  ext: "File extension",
+  filetype: "File type",
+  AND: "Logical AND",
+  OR: "Logical OR",
+  NOT: "Logical NOT (exclude term)"
+};
 
 const SearchForm = ({ onSearch, isLoading }) => {
   const [searchText, setSearchText] = useState("");
+  const [selectedOperator, setSelectedOperator] = useState("");
+  const [operatorValue, setOperatorValue] = useState("");
   const [fileType, setFileType] = useState("");
-  const [site, setSite] = useState("");
-  const [intitle, setIntitle] = useState("");
-  const [intext, setIntext] = useState("");
-  const [andTerm, setAndTerm] = useState("");
-  const [orTerm, setOrTerm] = useState("");
-  const [notTerm, setNotTerm] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-
-  const handleTemplateChange = (e) => {
-    const template = templates.find((t) => t.name === e.target.value);
-    if (template) {
-      setSearchText(template.query.searchText || "");
-      setFileType(template.query.fileType || "");
-      setSite(template.query.site || "");
-      setIntitle(template.query.intitle || "");
-      setSelectedTemplate(template.name);
-    }
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSearch({ searchText, fileType, site, intitle, intext, andTerm, orTerm, notTerm });
+    const queryPart = selectedOperator ? `${selectedOperator}:${operatorValue}` : "";
+    const finalQuery = `${searchText} ${queryPart}`.trim();
+    onSearch({ query: finalQuery, fileType });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <select
-        value={selectedTemplate}
-        onChange={handleTemplateChange}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      >
-        <option value="">Select a template</option>
-        {templates.map((template) => (
-          <option key={template.name} value={template.name}>
-            {template.name}
-          </option>
-        ))}
-      </select>
-      <input
-        type="text"
-        placeholder="Enter search intent"
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 4 }}>
+      <TextField
+        label="Search Intent"
         value={searchText}
         onChange={(e) => setSearchText(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
+        fullWidth
+        variant="outlined"
+        margin="normal"
+        size="medium"
+        InputProps={{ style: { fontSize: '1.2rem' } }}
       />
-      <input
-        type="text"
-        placeholder="Site (e.g., example.com)"
-        value={site}
-        onChange={(e) => setSite(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      />
-      <input
-        type="text"
-        placeholder="Intitle (e.g., login)"
-        value={intitle}
-        onChange={(e) => setIntitle(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      />
-      <input
-        type="text"
-        placeholder="Intext (e.g., password)"
-        value={intext}
-        onChange={(e) => setIntext(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      />
-      <input
-        type="text"
-        placeholder="AND term (e.g., security)"
-        value={andTerm}
-        onChange={(e) => setAndTerm(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      />
-      <input
-        type="text"
-        placeholder="OR term (e.g., admin)"
-        value={orTerm}
-        onChange={(e) => setOrTerm(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      />
-      <input
-        type="text"
-        placeholder="NOT term (e.g., test)"
-        value={notTerm}
-        onChange={(e) => setNotTerm(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      />
-      <select
-        value={fileType}
-        onChange={(e) => setFileType(e.target.value)}
-        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        disabled={isLoading}
-      >
-        <option value="">Select file type</option>
-        <option value="pdf">PDF</option>
-        <option value="docx">DOCX</option>
-        <option value="xlsx">XLSX</option>
-      </select>
-      <button
+
+      <Grid container spacing={2}>
+        <Grid item xs={6}>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Select Operator</InputLabel>
+            <Select
+              value={selectedOperator}
+              onChange={(e) => setSelectedOperator(e.target.value)}
+              label="Select Operator"
+            >
+              {Object.entries(operators).map(([key, label]) => (
+                <MenuItem key={key} value={key}>{label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={6}>
+          <TextField
+            label="Operator Value"
+            value={operatorValue}
+            onChange={(e) => setOperatorValue(e.target.value)}
+            fullWidth
+            margin="normal"
+            disabled={!selectedOperator}
+          />
+        </Grid>
+      </Grid>
+
+      <FormControl fullWidth margin="normal">
+        <InputLabel>File Type</InputLabel>
+        <Select
+          value={fileType}
+          onChange={(e) => setFileType(e.target.value)}
+          label="File Type"
+        >
+          <MenuItem value="">None</MenuItem>
+          {fileTypes.map((type) => (
+            <MenuItem key={type} value={type}>{type.toUpperCase()}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <Button
         type="submit"
+        variant="contained"
+        color="primary"
+        fullWidth
+        sx={{ mt: 2, py: 1.5 }}
         disabled={isLoading}
-        className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
       >
         {isLoading ? "Generating Query..." : "Generate Query"}
-      </button>
-    </form>
+      </Button>
+    </Box>
   );
 };
 

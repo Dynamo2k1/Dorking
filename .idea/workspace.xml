@@ -5,12 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="24abb86a-e7fa-4c84-9796-d7ceb6d498af" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/node/server.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/QueryPreview.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/SearchForm.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/TemplateSelector.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/QueryPreview.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/QueryPreview.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/SearchForm.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/SearchForm.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tailwind.config.js" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,7 +72,7 @@
       <option name="presentableId" value="Default" />
       <updated>1739615357690</updated>
       <workItem from="1739615358769" duration="99000" />
-      <workItem from="1739616333408" duration="8199000" />
+      <workItem from="1739616333408" duration="11944000" />
     </task>
     <servers />
   </component>

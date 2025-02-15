@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Container, Typography, Box, CircularProgress } from "@mui/material";
 import SearchForm from "./components/SearchForm";
 import QueryPreview from "./components/QueryPreview";
 import axios from "axios";
@@ -20,22 +21,24 @@ const App = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">Google Dorks Tool</h1>
-      <div className="bg-white p-6 rounded-lg shadow-lg">
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Typography variant="h3" align="center" color="primary" gutterBottom>
+        Google Dorks Tool
+      </Typography>
+      <Box sx={{ bgcolor: "background.paper", p: 4, borderRadius: 2, boxShadow: 3 }}>
         <SearchForm onSearch={handleSearch} isLoading={isLoading} />
         {isLoading ? (
-          <div className="flex justify-center mt-6">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+            <CircularProgress />
+          </Box>
         ) : (
           <QueryPreview query={query} />
         )}
-      </div>
-      <footer className="mt-8 text-center text-gray-500">
-        <p>Use this tool responsibly. Do not misuse it for unethical purposes.</p>
-      </footer>
-    </div>
+      </Box>
+      <Typography variant="body2" align="center" sx={{ mt: 4, color: "text.secondary" }}>
+        Use this tool responsibly. Do not misuse it for unethical purposes.
+      </Typography>
+    </Container>
   );
 };
 
