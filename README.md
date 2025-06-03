@@ -1,46 +1,152 @@
-# Dorking
 
-Dorking is a web-based search tool that helps security professionals perform **Google dorking** (advanced search queries) to find specific information on the internet:contentReference[oaicite:19]{index=19}. It provides a frontend UI for composing search templates and previewing queries, and a Node.js backend to handle search requests.
+# 🔒 SecureDork - Advanced Query Generator with Security Protections
 
-## Installation
+![Project Banner](https://via.placeholder.com/1200x400/0F4C81/FFFFFF?text=SecureDork+Query+Generator) 
+*(Replace with your actual project screenshot)*
 
-1. **Prerequisites:** Install [Docker](https://www.docker.com) and [Node.js](https://nodejs.org) (v18+).
-2. **Clone the repository:** `git clone https://github.com/Dynamo2k1/Dorking.git`
-3. **Using Docker:**  
-   - Build and run with Docker Compose:  
-     ```
-     cd Dorking
-     docker-compose up --build -d
-     ```  
-   - This starts the backend server and frontend client in containers.
-4. **Local development (alternative):**  
-   - Navigate to `backend/node`, run `npm install`, then `node server.js`.  
-   - In `frontend`, run `npm install`, then `npm start` to launch the React app.
+## 🌟 Features
 
-## Usage
+| Feature | Description | Security Benefit |
+|---------|------------|------------------|
+| 🔐 JWT Authentication | Secure token-based auth with HTTP-only cookies | Prevents XSS token theft |
+| 🛡️ Input Validation | Multi-layer validation (client + server) | Blocks injection attacks |
+| ⏱️ Rate Limiting | 5 attempts/15 minutes on auth endpoints | Prevents brute force |
+| 📜 Audit Logging | Tamper-evident logs of all critical actions | Enables accountability |
+| 🚦 CORS Whitelisting | Strict origin control for API endpoints | Prevents CSRF attacks |
+| 🔄 Secure Sessions | SameSite+Secure cookies with 1hr expiration | Mitigates session hijacking |
 
-- Open your browser to `http://localhost:3000` (or the port shown by Docker).
-- Use the **SearchForm** to enter keywords and select a dork template.
-- Click **Search** to generate and preview the query. The app will execute the search and display results.
-- Customize templates in **TemplateSelector** or adjust styles in **Tailwind** config as needed.
+## 🚀 Quick Start
 
-## Security Considerations
+### Prerequisites
+- Node.js 16+
+- npm 8+
+- SQLite3
 
-- **HTTPS:** In production, serve Dorking over HTTPS. Use secure cookie flags (`HttpOnly`, `Secure`) and Content Security Policy headers.
-- **Input Validation:** The app validates user input on both frontend and backend to prevent injection attacks (see [Node.js Security Cheat Sheet] for best practices:contentReference[oaicite:20]{index=20}:contentReference[oaicite:21]{index=21}).
-- **Dependencies:** All Node packages should be kept up-to-date. Use `npm audit` and tools like OWASP Dependency-Check to detect vulnerable components:contentReference[oaicite:22]{index=22}.
-- **Configuration:** Do not hardcode secrets or credentials. Use environment variables and Docker secrets for sensitive config.
-- **Error Handling:** Errors are logged server-side (without leaking stack traces). The app avoids exposing any internal information to end-users.
-- **Network:** The Docker setup runs services on an internal Docker network. Disable any unnecessary external port exposure.
+```bash
+# Clone repository
+git clone https://github.com/yourusername/secure-dork.git
+cd secure-dork
 
-## Contributing
+# Install dependencies
+npm install
 
-Contributions are welcome! To contribute:
+# Configure environment
+cp .env.example .env
+# Edit .env with your settings
 
-1. Fork the repository and create your feature branch (`git checkout -b my-feature`).
-2. Commit your changes with clear messages (`git commit -m "Add feature"`).
-3. Open a Pull Request describing your changes.
-4. Ensure code follows the existing style and passes any tests (if added).
+# Start development servers
+npm run dev
+```
 
-Please open an issue or contact the maintainer (dynamo89247@gmail.com) for any questions or suggestions.
+## 🏗️ Project Structure
 
+```
+secure-dork/
+├── backend/               # Node.js server
+│   ├── node/
+│   │   ├── auth.js        # Authentication middleware
+│   │   ├── audit.js       # Logging system
+│   │   ├── server.js      # Main application
+│   │   └── db.js          # Database configuration
+├── frontend/              # React application
+│   ├── src/
+│   │   ├── api.js         # API service layer
+│   │   ├── App.js         # Main application
+│   │   └── components/    # UI components
+└── docker-compose.yml     # Container orchestration
+```
+
+## 🛡️ Security Implementation
+
+### Authentication Flow
+```mermaid
+sequenceDiagram
+    User->>Frontend: Enters credentials
+    Frontend->>Backend: POST /login (HTTPS)
+    Backend->>Backend: bcrypt.compare()
+    Backend->>Frontend: HTTP-only Cookie
+    Frontend->>Backend: Subsequent requests
+    Backend->>Backend: JWT verification
+```
+
+### Key Security Code
+```javascript
+// Secure cookie settings
+res.cookie('token', token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 3600000 // 1 hour
+});
+
+// Rate limiting middleware
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: 'Too many login attempts'
+});
+```
+
+## 📊 OWASP Top 10 Coverage
+
+| OWASP Risk | Mitigation |
+|------------|------------|
+| Injection | Parameterized queries + Input validation |
+| Broken Auth | JWT + HTTP-only cookies + bcrypt |
+| Sensitive Data Exposure | Secure cookie attributes |
+| XXE | Disabled XML parsing |
+| Broken Access Control | Route protection middleware |
+| Security Misconfig | Helmet.js + CORS whitelisting |
+| XSS | React DOM escaping + CSP |
+| Insecure Deserialization | JSON parsing only |
+| Vulnerable Components | npm audit + Dependabot |
+| Insufficient Logging | Comprehensive audit trail |
+
+## 🧪 Testing
+
+```bash
+# Run security audit
+npm audit
+
+# Run ESLint
+npm run lint
+
+# Run Jest tests
+npm test
+```
+
+## 📈 Deployment
+
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy)
+
+```bash
+# Production build
+npm run build
+
+# Docker deployment
+docker-compose up -d --build
+```
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📜 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## ✉️ Contact
+
+Project Maintainer: [Rana Uzair Ahmad](mailto:dynamo89247@gmail.com)  
+
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ by Dynamo2k1 | Documentation generated by <a href="https://github.com/Dynamo2k1">SecureDork</a></sub>
+</div>
