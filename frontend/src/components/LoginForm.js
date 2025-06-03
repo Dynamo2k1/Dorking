@@ -1,42 +1,62 @@
 import React, { useState } from "react";
-import { TextField, Button, Box, Typography } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Box,
+  Typography,
+  CircularProgress,
+  Alert
+} from "@mui/material";
 
-const LoginForm = ({ onLogin }) => {
-  const [username, setUsername] = useState("testuser"); // default username for demo
-  const [password, setPassword] = useState(""); // password can be ignored for demo
-  const [error, setError] = useState("");
+const LoginForm = ({ onLogin, isLoading, error: propError }) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setLocalError("");
+
+    // Client-side validation
+    if (!username.trim()) {
+      setLocalError("Username is required");
+      return;
+    }
+
+    if (!password) {
+      setLocalError("Password is required");
+      return;
+    }
 
     try {
-      // For your demo backend, no real credentials check, just call /login
-      const response = await fetch("http://localhost:5000/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+      await onLogin({ 
+        username: username.trim(), 
+        password 
       });
-
-      if (!response.ok) throw new Error("Login failed");
-
-      const data = await response.json();
-      onLogin(data.token);
     } catch (err) {
-      setError("Login failed, try again.");
+      // Handle both server errors and local validation errors
+      setLocalError(err.message || "Login failed. Please try again.");
     }
   };
+
+  // Combine prop error (from parent) and local error
+  const errorToShow = propError || localError;
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <Typography variant="h5" gutterBottom>Login</Typography>
+      
       <TextField
         label="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         fullWidth
         margin="normal"
+        required
+        error={!!localError && !username.trim()}
+        helperText={!username.trim() && localError ? " " : ""} // Maintain spacing
       />
+      
       <TextField
         label="Password"
         type="password"
@@ -44,10 +64,29 @@ const LoginForm = ({ onLogin }) => {
         onChange={(e) => setPassword(e.target.value)}
         fullWidth
         margin="normal"
+        required
+        error={!!localError && !password}
+        helperText={!password && localError ? " " : ""}
       />
-      {error && <Typography color="error" sx={{ mt: 1 }}>{error}</Typography>}
-      <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-        Login
+      
+      {errorToShow && (
+        <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+          {errorToShow}
+        </Alert>
+      )}
+      
+      <Button
+        type="submit"
+        variant="contained"
+        fullWidth
+        sx={{ mt: 2 }}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <CircularProgress size={24} color="inherit" />
+        ) : (
+          "Login"
+        )}
       </Button>
     </Box>
   );

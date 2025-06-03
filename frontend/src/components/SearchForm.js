@@ -7,6 +7,7 @@ import {
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import WarningIcon from "@mui/icons-material/Warning";
 
+
 // ALL POSSIBLE DORKING OPERATORS (COMPLETE LIST)
 const operators = [
   {
@@ -168,36 +169,54 @@ const operators = [
       { id: "index_of_admin_files", label: "\"index of\" \"admin\" \"files\"", example: "\"index of\" \"admin\" \"files\"", isDeprecated: false },
     ]
   }
-];
+];  
 
-const SearchForm = ({ onSearch, isLoading }) => {
+const SearchForm = ({ onSearch, isLoading, setIsAuthenticated }) => {
   const [searchText, setSearchText] = useState("");
   const [selectedOperator, setSelectedOperator] = useState("");
   const [operatorValue, setOperatorValue] = useState("");
   const [operatorList, setOperatorList] = useState([]);
+  const [error, setError] = useState("");
 
   const handleAddOperator = () => {
     if (selectedOperator && operatorValue) {
       const operator = operators
-          .flatMap(g => g.items)
-          .find(op => op.id === selectedOperator);
+        .flatMap(g => g.items)
+        .find(op => op.id === selectedOperator);
       setOperatorList([...operatorList, { ...operator, value: operatorValue }]);
       setSelectedOperator("");
       setOperatorValue("");
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    
     const queryParts = [
       searchText,
-      ...operatorList.map((op) => `${op.label}${op.value}`)
-    ].filter(Boolean);
-    onSearch({ queryParts });
+      ...operatorList.map(op => `${op.label}${op.value}`)
+    ].filter(part => part && part.trim());
+  
+    try {
+      const result = await generateQuery(queryParts); // Now using it directly
+      onSearch(result.query);
+    } catch (err) {
+      setError(err.message || "Failed to generate query");
+      if (err.message.includes('Unauthorized')) {
+        setIsAuthenticated(false);
+      }
+    }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 4 }}>
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
+
       <TextField
         label="Search Intent"
         value={searchText}
@@ -343,4 +362,4 @@ const SearchForm = ({ onSearch, isLoading }) => {
   );
 };
 
-export default SearchForm;
+export default SearchForm;  

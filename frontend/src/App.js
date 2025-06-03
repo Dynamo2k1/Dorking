@@ -1,81 +1,104 @@
-import React, { useState, useEffect } from "react";
-import { Container, Typography, Box, CircularProgress, Button } from "@mui/material";
-import SearchForm from "./components/SearchForm";
-import QueryPreview from "./components/QueryPreview";
-import LoginForm from "./components/LoginForm";
-import axios from "axios";
+import React, { useState, useEffect } from 'react';
+import { Container, Box, CircularProgress, Alert } from '@mui/material';
+import LoginForm from './components/LoginForm';
+import SearchForm from './components/SearchForm';
+import QueryPreview from './components/QueryPreview';
+import { login, logout, validateSession, generateQuery } from './api';
 
 const App = () => {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [error, setError] = useState('');
 
-  // Set token in axios headers
   useEffect(() => {
-    if (token) {
-      localStorage.setItem("token", token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    } else {
-      localStorage.removeItem("token");
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  }, [token]);
+    const checkAuth = async () => {
+      try {
+        setIsLoading(true);
+        await validateSession();
+        setIsAuthenticated(true);
+      } catch (err) {
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
-  const handleLogin = (newToken) => {
-    setToken(newToken);
-  };
-
-  const handleLogout = () => {
-    setToken("");
-    setQuery("");
-  };
-
-  const handleSearch = async (searchParams) => {
-    setIsLoading(true);
+  const handleLogin = async (credentials) => {
     try {
-      const response = await axios.post("http://localhost:5000/generate-query", {
-        queryParts: searchParams.queryParts,
-      });
-      setQuery(response.data.query);
-    } catch (error) {
-      console.error("Error generating query:", error);
-      alert("Failed to generate query. Please make sure you are logged in.");
+      setIsLoading(true);
+      setError('');
+      await login(credentials);
+      setIsAuthenticated(true);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!token) {
+  const handleLogout = async () => {
+    try {
+      setIsLoading(true);
+      await logout();
+      setIsAuthenticated(false);
+      setQuery('');
+    } catch (err) {
+      setError('Logout failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = async (requestBody) => {
+    try {
+      setIsLoading(true);
+      setError('');
+      const result = await generateQuery(requestBody.queryParts);
+      setQuery(result.query);
+    } catch (err) {
+      setError(err.message);
+      if (err.message.includes('Unauthorized')) {
+        setIsAuthenticated(false);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading && !isAuthenticated) {
     return (
-      <Container maxWidth="sm" sx={{ mt: 4 }}>
-        <LoginForm onLogin={handleLogin} />
+      <Container maxWidth="sm" sx={{ mt: 4, textAlign: 'center' }}>
+        <CircularProgress />
       </Container>
     );
   }
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h3" color="primary">
-          Google Dorks Tool
-        </Typography>
-        <Button variant="outlined" onClick={handleLogout}>
-          Logout
-        </Button>
-      </Box>
-      <Box sx={{ bgcolor: "background.paper", p: 4, borderRadius: 2, boxShadow: 3 }}>
-        <SearchForm onSearch={handleSearch} isLoading={isLoading} />
-        {isLoading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-            <CircularProgress />
+      {!isAuthenticated ? (
+        <LoginForm onLogin={handleLogin} isLoading={isLoading} error={error} />
+      ) : (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <button onClick={handleLogout} disabled={isLoading}>
+              {isLoading ? 'Logging out...' : 'Logout'}
+            </button>
           </Box>
-        ) : (
-          <QueryPreview query={query} />
-        )}
-      </Box>
-      <Typography variant="body2" align="center" sx={{ mt: 4, color: "text.secondary" }}>
-        Use this tool responsibly. Do not misuse it for unethical purposes.
-      </Typography>
+          
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          <SearchForm onSearch={handleSearch} isLoading={isLoading}setIsAuthenticated={setIsAuthenticated}/>
+          
+          {isLoading ? (
+            <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />
+          ) : (
+            <QueryPreview query={query} />
+          )}
+        </>
+      )}
     </Container>
   );
 };

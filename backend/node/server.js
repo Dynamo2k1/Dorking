@@ -6,97 +6,175 @@ const rateLimit = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { body, validationResult } = require('express-validator');
-const authenticateToken = require('./auth');
+const cookieParser = require('cookie-parser');
+const db = require('./db');
+const { log } = require('./audit');
 const { generateQuery } = require('./services/queryGenerator');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
-app.use(helmet());
+
+const whitelist = ['http://localhost:3000'];
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  exposedHeaders: ['set-cookie']
+}));
+
+app.use(helmet({
+  contentSecurityPolicy: false // Disable for simplicity in dev
+}));
 
 // Rate Limiting
-const limiter = rateLimit({
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.'
+  max: 5,
+  message: 'Too many login attempts'
 });
-app.use(limiter);
 
-// Enforce HTTPS
-// app.use((req, res, next) => {
-//   if (req.headers['x-forwarded-proto'] !== 'https') {
-//     return res.redirect(`https://${req.headers.host}${req.url}`);
-//   }
-//   next();
-// });
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+});
 
-// Simulated user database (hashed password for 'password123')
-const users = [
-  {
-    id: 1,
-    username: 'testuser',
-    passwordHash: '$2b$10$hsDJ8XSsvzw5uTYntgc98OXeENZ3Ze2KLMqnhJh.PQwdruC7nN74S' // 'password123'
-  }
-];
+// Auth Middleware
+const authenticateToken = (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token) return res.sendStatus(401);
 
-// Login Route
-app.post(
-  '/login',
-  body('username').notEmpty().withMessage('Username is required'),
-  body('password').notEmpty().withMessage('Password is required'),
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
+
+// Routes
+// Update the login route
+app.post('/login', 
+  authLimiter,
+  body('username').notEmpty().trim().escape(),
+  body('password').notEmpty(),
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
     }
-
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-
-    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
-
-    if (!passwordMatch) {
-      return res.status(401).json({ message: 'Invalid username or password' });
-    }
-
-    const token = jwt.sign({ id: user.id, username: user.username }, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: '1h'
-    });
-
-    res.json({ token });
-  }
-);
-
-// Protected route to generate Google Dork query
-app.post(
-  '/generate-query',
-  authenticateToken,
-  body('queryParts').isArray({ min: 1 }).withMessage('queryParts must be a non-empty array'),
-  (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { queryParts } = req.body;
 
     try {
-      const query = generateQuery(queryParts);
-      res.json({ query });
-    } catch (error) {
-      res.status(400).json({ error: error.message });
+      const { username, password } = req.body;
+      const user = await db.get(
+        'SELECT * FROM users WHERE username = ?', 
+        [username]
+      );
+
+      if (!user) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Invalid credentials' 
+        });
+      }
+
+      const valid = await bcrypt.compare(password, user.password_hash);
+      if (!valid) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Invalid credentials' 
+        });
+      }
+
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 3600000
+      }).json({ 
+        success: true,
+        message: 'Login successful',
+        user: { id: user.id, username: user.username }
+      });
+
+    } catch (err) {
+      console.error('Login error:', err);
+      res.status(500).json({ 
+        success: false,
+        message: 'Server error' 
+      });
     }
   }
 );
 
-// Start server
+app.post('/validate-session', authenticateToken, (req, res) => {
+  res.json({ valid: true, user: req.user });
+});
+
+app.post('/logout', (req, res) => {
+  res.clearCookie('token').json({ message: 'Logged out' });
+});
+
+// In your generate-query route
+app.post('/generate-query',
+  apiLimiter,
+  authenticateToken,
+  body('queryParts').isArray().withMessage('queryParts must be an array'),
+  body('queryParts.*').isString().withMessage('Each query part must be a string'),
+  async (req, res) => {
+    console.log('Received generate-query request:', {
+      body: req.body,
+      user: req.user
+    }); 
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.error('Validation errors:', errors.array());
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array().map(err => err.msg)
+      });
+    }
+
+    try {
+      const { queryParts } = req.body; // Destructure properly
+      const result = generateQuery(queryParts);
+      
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.json({
+        success: true,
+        query: result.query
+      });
+    } catch (err) {
+      console.error('Query generation error:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error during query generation'
+      });
+    }
+  }
+);
+
 app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+  console.log(`Server running on http://loca  lhost:${PORT}`);
 });
